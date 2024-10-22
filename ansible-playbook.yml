@@ -19,18 +19,21 @@
         mode: '0755'
       when: kubectl_installed.rc != 0
 
-    - name: Install python3 and python3-pip
+    - name: Install python3 and python3-venv
       package:
         name:
           - python3
+          - python3-venv
           - python3-pip
         state: present
 
-    - name: Install Python Kubernetes client
-      pip:
-        name: kubernetes
-        state: present
-        executable: /usr/bin/pip3  # Adjust this if pip is installed elsewhere
+    - name: Create a virtual environment
+      command: python3 -m venv /home/ubuntu/k8s-venv
+      args:
+        creates: /home/ubuntu/k8s-venv
+
+    - name: Install Python Kubernetes client in virtual environment
+      command: /home/ubuntu/k8s-venv/bin/pip install kubernetes
 
     - name: Create or update deployment
       k8s:
