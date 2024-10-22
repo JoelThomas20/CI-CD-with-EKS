@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: coffeeshopservice
+spec:
+  selector:
+    app: coffeeshop  # Ensure this matches the deployment selector
+  ports:
+    - protocol: TCP
+      port: 80             # Port accessible inside the cluster
+      targetPort: 80       # Port to forward to inside the pod
+      nodePort: 30000      # Port accessible outside the cluster
+  type: NodePort
