@@ -19,6 +19,12 @@
         mode: '0755'
       when: kubectl_installed.rc != 0
 
+    - name: Install Python Kubernetes client
+      pip:
+        name: kubernetes
+        state: present
+        executable: /usr/bin/pip3  # Specify the correct pip if needed
+
     - name: Create or update deployment
       k8s:
         state: present
@@ -43,4 +49,3 @@
     - name: Debug port forward output
       debug:
         var: port_forward_output.stdout_lines
-
