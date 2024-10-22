@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffeeshopservice
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: coffeeshop  # Changed label for consistency
+  template:
+    metadata:
+      labels:
+        app: coffeeshop  # Ensure this label matches the service selector
+    spec:
+      containers:
+        - name: coffeeshop
+          image: joelthomas24/coffeeshop  # Ensure the image name is correct
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+            limits:
+              memory: "256Mi"
+              cpu: "1"
