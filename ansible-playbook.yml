@@ -1,0 +1,40 @@
+- hosts: all
+  become: true
+  become_user: root
+  tasks:
+    - name: Ensure kubectl is installed
+      command: kubectl version --client
+      register: kubectl_installed
+      ignore_errors: true
+
+    - name: Install kubectl if not present
+      get_url:
+        url: https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+      when: kubectl_installed.rc != 0
+
+    - name: Create or update deployment
+      k8s:
+        state: present
+        definition: "{{ lookup('file', '/home/ubuntu/Deployment.yml') }}"
+
+    - name: Create or update service
+      k8s:
+        state: present
+        definition: "{{ lookup('file', '/home/ubuntu/Service.yml') }}"
+
+    - name: Make script executable
+      file:
+        path: /home/ubuntu/kubect-port-forward.sh
+        mode: '0755'
+
+    - name: Start port forwarding in the background
+      shell: "nohup /bin/sh /home/ubuntu/kubect-port-forward.sh &"
+      async: 10
+      poll: 0
+      register: port_forward_output
+
+    - name: Debug port forward output
+      debug:
+        var: port_forward_output.stdout_lines
