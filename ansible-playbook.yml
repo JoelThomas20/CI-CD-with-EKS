@@ -1,43 +1,30 @@
----
-- name: Kubernetes Deployment with AWS EKS
-  hosts: all
-  become: yes
+- hosts: all
+  become: true
+  become_user: root
   tasks:
+    - name: Delete old deployment
+      command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+      ignore_errors: true
 
-    - name: Ensure AWS CLI is installed
-      package:
-        name: awscli
-        state: present
+    - name: Delete old service
+      command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
+      ignore_errors: true
 
-    - name: Configure AWS credentials
-      copy:
-        dest: /home/ubuntu/.aws/credentials
-        content: |
-          [default]
-          aws_access_key_id = AKIA34AMDK3ULDNQJBGY
-          aws_secret_access_key = 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
+    - name: Create new deployment
+      command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
 
-    - name: Ensure AWS config file exists
-      copy:
-        dest: /home/ubuntu/.aws/config
-        content: |
-          [default]
-          region = ap-south-1
-      notify: set_permissions
+    - name: Create new service
+      command: kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
 
-    - name: Update kubeconfig
-      command: aws eks update-kubeconfig --name CoffeeCluster --region ap-south-1
-      register: kubeconfig_output
-      ignore_errors: yes
+    - name: Make script executable
+      command: chmod +x /home/ubuntu/kubect-port-forward.sh
 
-    - name: Debug kubeconfig output
+    - name: Kubectl port forward nodeport to service port and run the command in background
+      command: nohup /bin/sh "/home/ubuntu/kubect-port-forward.sh" --kubeconfig=/home/ubuntu/.kube/config
+      async: 100000
+      poll: 10
+      register: scrout
+
+    - name: Debug output
       debug:
-        var: kubeconfig_output
-
-  handlers:
-    - name: set_permissions
-      file:
-        path: /home/ubuntu/.aws
-        owner: ubuntu
-        group: ubuntu
-        mode: '0700'
+        var: scrout.stdout_lines
