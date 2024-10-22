@@ -2,29 +2,43 @@
   become: true
   become_user: root
   tasks:
-    - name: Delete old deployment
+    - name: Verify AWS credentials
+      command: aws sts get-caller-identity
+      register: aws_credentials
+      ignore_errors: true
+
+    - name: Fail if AWS credentials are invalid
+      fail:
+        msg: "Invalid AWS credentials. Please check your AWS configuration."
+      when: aws_credentials.rc != 0
+
+    - name: delete old deployment
       command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
       ignore_errors: true
 
-    - name: Delete old service
+    - name: delete old service
       command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
       ignore_errors: true
 
-    - name: Create new deployment
+    - name: create new deployment
       command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
 
-    - name: Create new service
+    - name: create new service
       command: kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
 
-    - name: Make script executable
-      command: chmod +x /home/ubuntu/kubect-port-forward.sh
+    - name: make script executable
+      command: "chmod +x /home/ubuntu/kubect-port-forward.sh"
 
-    - name: Kubectl port forward nodeport to service port and run the command in background
-      command: nohup /bin/sh "/home/ubuntu/kubect-port-forward.sh" --kubeconfig=/home/ubuntu/.kube/config
+    - name: set kubeconfig for EKS
+      command: >
+        aws eks update-kubeconfig --name <your-cluster-name> --region <your-region>
+      register: kubeconfig_output
+
+    - name: kubectl port forward nodeport to service port and run the command in background
+      command: nohup /bin/sh "/home/ubuntu/kubect-port-forward.sh"
       async: 100000
       poll: 10
       register: scrout
 
-    - name: Debug output
-      debug:
-        var: scrout.stdout_lines
+    - name: Some task just to debug
+      debug: var=scrout.stdout_lines
