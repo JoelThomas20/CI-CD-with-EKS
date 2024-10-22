@@ -2,6 +2,36 @@
   become: true
   become_user: root
   tasks:
+    - name: Ensure AWS CLI is installed
+      command: aws --version
+      register: aws_version
+      failed_when: aws_version.rc != 0
+
+    - name: Configure AWS credentials
+      copy:
+        content: |
+          [default]
+          aws_access_key_id = AKIA34AMDK3ULDNQJBGY
+          aws_secret_access_key = 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
+          region = ap-south-1
+        dest: /home/ubuntu/.aws/credentials
+        owner: ubuntu
+        mode: '0600'
+
+    - name: Ensure AWS config file exists
+      copy:
+        content: |
+          [default]
+          region = ap-south-1
+        dest: /home/ubuntu/.aws/config
+        owner: ubuntu
+        mode: '0600'
+
+    - name: Update kubeconfig
+      command: aws eks update-kubeconfig --name CoffeeCluster --region ap-south-1
+      register: kubeconfig_update
+      failed_when: kubeconfig_update.rc != 0
+
     - name: delete old deployment
       command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
       ignore_errors: true
@@ -12,11 +42,9 @@
 
     - name: create new deployment
       command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
-      register: deploy_result
 
     - name: create new service
       command: kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
-      register: service_result
 
     - name: make script executable
       command: "chmod +x /home/ubuntu/kubect-port-forward.sh"
@@ -27,14 +55,5 @@
       poll: 10
       register: scrout
 
-    - name: debug deployment result
-      debug:
-        var: deploy_result.stdout_lines
-
-    - name: debug service result
-      debug:
-        var: service_result.stdout_lines
-
-    - name: debug port forward output
-      debug: 
-        var: scrout.stdout_lines
+    - name: Some task just to debug
+      debug: var=scrout.stdout_lines
