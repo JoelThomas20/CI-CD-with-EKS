@@ -3,7 +3,7 @@
   become_user: root
   tasks:
     - name: delete old deployment
-      command: /usr/local/bin/kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+      command: /home/ubuntu/bin/kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
       register: delete_deployment
       ignore_errors: true
 
@@ -12,7 +12,7 @@
         var: delete_deployment
 
     - name: delete old service
-      command: /usr/local/bin/kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
+      command: /home/ubuntu/bin/kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
       register: delete_service
       ignore_errors: true
 
@@ -21,7 +21,7 @@
         var: delete_service
 
     - name: create new deployment
-      command: /usr/local/bin/kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+      command: /home/ubuntu/bin/kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
       register: create_deployment
 
     - name: Print create deployment output
@@ -29,7 +29,7 @@
         var: create_deployment
 
     - name: create new service
-      command: /usr/local/bin/kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
+      command: /home/ubuntu/bin/kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
       register: create_service
 
     - name: Print create service output
