@@ -4,6 +4,7 @@
   gather_facts: no
   vars:
     kubeconfig_path: /home/ubuntu/.kube/config
+    kubectl_path: /home/ubuntu/bin/kubectl  # Added full path for kubectl
 
   tasks:
     - name: Set AWS credentials
@@ -11,8 +12,12 @@
         AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
         AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
 
+    - name: Verify AWS credentials
+      debug:
+        msg: "AWS Access Key ID: {{ AWS_ACCESS_KEY_ID }}"
+
     - name: Verify kubectl connection
-      command: kubectl get nodes --kubeconfig={{ kubeconfig_path }}
+      command: "{{ kubectl_path }} get nodes --kubeconfig={{ kubeconfig_path }}"
       register: kubectl_output
       failed_when: kubectl_output.rc != 0
 
@@ -20,7 +25,7 @@
         var: kubectl_output.stdout_lines
 
     - name: Delete old deployment
-      command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }}
+      command: "{{ kubectl_path }} delete -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }}"
       register: delete_deployment
       ignore_errors: yes
 
@@ -28,7 +33,7 @@
         var: delete_deployment
 
     - name: Delete old service
-      command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }}
+      command: "{{ kubectl_path }} delete -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }}"
       register: delete_service
       ignore_errors: yes
 
@@ -36,7 +41,7 @@
         var: delete_service
 
     - name: Create new deployment
-      command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }} --validate=false
+      command: "{{ kubectl_path }} apply -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }} --validate=false"
       register: create_deployment
       failed_when: create_deployment.rc != 0
 
@@ -44,7 +49,7 @@
         var: create_deployment
 
     - name: Create new service
-      command: kubectl apply -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }} --validate=false
+      command: "{{ kubectl_path }} apply -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }} --validate=false"
       register: create_service
       failed_when: create_service.rc != 0
 
