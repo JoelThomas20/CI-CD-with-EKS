@@ -2,16 +2,15 @@
 - hosts: all
   become: true
   become_user: root
-  vars:
-    # Load AWS credentials from the vault file
-    aws_credentials: "{{ lookup('ansible.builtin.vault', 'vault.yml') }}"
+  vars_files:
+    - vault.yml  # Directly reference the vault file
 
   tasks:
     - name: Set AWS environment variables
       set_fact:
-        aws_access_key_id: "{{ aws_credentials.aws_access_key_id }}"
-        aws_secret_access_key: "{{ aws_credentials.aws_secret_access_key }}"
-        aws_region: "{{ aws_credentials.aws_region }}"
+        aws_access_key_id: "{{ aws_access_key_id }}"
+        aws_secret_access_key: "{{ aws_secret_access_key }}"
+        aws_region: "{{ aws_region }}"
 
     - name: Delete old deployment
       command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
