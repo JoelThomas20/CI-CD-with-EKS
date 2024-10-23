@@ -1,50 +1,52 @@
-- hosts: all
-  become: true
-  become_user: root
-  tasks:
-    - name: delete old deployment
-      command: /home/ubuntu/bin/kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
-      register: delete_deployment
-      ignore_errors: true
+---
+- name: Manage Kubernetes Deployments
+  hosts: localhost
+  gather_facts: no
+  vars:
+    kubeconfig_path: /home/ubuntu/.kube/config
 
-    - name: Print delete deployment output
-      debug:
+  tasks:
+    - name: Set AWS credentials
+      set_fact:
+        AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+
+    - name: Verify kubectl connection
+      command: kubectl get nodes --kubeconfig={{ kubeconfig_path }}
+      register: kubectl_output
+      failed_when: kubectl_output.rc != 0
+
+    - debug:
+        var: kubectl_output.stdout_lines
+
+    - name: Delete old deployment
+      command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }}
+      register: delete_deployment
+      ignore_errors: yes
+
+    - debug:
         var: delete_deployment
 
-    - name: delete old service
-      command: /home/ubuntu/bin/kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
+    - name: Delete old service
+      command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }}
       register: delete_service
-      ignore_errors: true
+      ignore_errors: yes
 
-    - name: Print delete service output
-      debug:
+    - debug:
         var: delete_service
 
-    - name: create new deployment
-      command: /home/ubuntu/bin/kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+    - name: Create new deployment
+      command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig={{ kubeconfig_path }} --validate=false
       register: create_deployment
+      failed_when: create_deployment.rc != 0
 
-    - name: Print create deployment output
-      debug:
+    - debug:
         var: create_deployment
 
-    - name: create new service
-      command: /home/ubuntu/bin/kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
+    - name: Create new service
+      command: kubectl apply -f /home/ubuntu/Service.yml --kubeconfig={{ kubeconfig_path }} --validate=false
       register: create_service
+      failed_when: create_service.rc != 0
 
-    - name: Print create service output
-      debug:
+    - debug:
         var: create_service
-
-    - name: make script executable
-      command: chmod +x /home/ubuntu/kubect-port-forward.sh
-
-    - name: kubectl port forward nodeport to service port and run the command in background
-      command: nohup /bin/sh "/home/ubuntu/kubect-port-forward.sh" &
-      async: 100000
-      poll: 0
-      register: port_forward_output
-
-    - name: Print port forward output
-      debug:
-        var: port_forward_output
