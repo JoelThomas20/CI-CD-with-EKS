@@ -1,3 +1,4 @@
+---
 - hosts: all
   become: true
   become_user: root
@@ -6,34 +7,55 @@
     aws_credentials: "{{ lookup('ansible.builtin.vault', 'vault.yml') }}"
 
   tasks:
-    - name: delete old deployment
-      command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
-      ignore_errors: true
-
-    - name: delete old service
-      command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
-      ignore_errors: true
-
-    - name: create new deployment
-      command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
-
-    - name: create new service
-      command: kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
-
-    - name: make script executable
-      command: chmod +x /home/ubuntu/kubect-port-forward.sh
-
     - name: Set AWS environment variables
       set_fact:
         aws_access_key_id: "{{ aws_credentials.aws_access_key_id }}"
         aws_secret_access_key: "{{ aws_credentials.aws_secret_access_key }}"
         aws_region: "{{ aws_credentials.aws_region }}"
 
+    - name: Delete old deployment
+      command: kubectl delete -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+      ignore_errors: true
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_REGION: "{{ aws_region }}"
+
+    - name: Delete old service
+      command: kubectl delete -f /home/ubuntu/Service.yml --kubeconfig=/home/ubuntu/.kube/config
+      ignore_errors: true
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_REGION: "{{ aws_region }}"
+
+    - name: Create new deployment
+      command: kubectl apply -f /home/ubuntu/Deployment.yml --kubeconfig=/home/ubuntu/.kube/config
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_REGION: "{{ aws_region }}"
+
+    - name: Create new service
+      command: kubectl apply -f /home/ubuntu/Service.yml --force --kubeconfig=/home/ubuntu/.kube/config
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_REGION: "{{ aws_region }}"
+
+    - name: Make script executable
+      command: chmod +x /home/ubuntu/kubect-port-forward.sh
+
     - name: kubectl port forward nodeport to service port and run the command in background
       command: nohup /bin/sh "/home/ubuntu/kubect-port-forward.sh"
       async: 100000
       poll: 10
       register: scrout
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+        AWS_REGION: "{{ aws_region }}"
 
-    - name: Some task just to debug
-      debug: var=scrout.stdout_lines
+    - name: Debug output
+      debug:
+        var: scrout.stdout_lines
